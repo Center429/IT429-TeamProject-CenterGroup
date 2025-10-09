@@ -426,7 +426,7 @@ EOF
         BUILD_IMAGE="aws/codebuild/amazonlinux2-x86_64-standard:5.0"
         COMPUTE_TYPE="BUILD_GENERAL1_LARGE"
         PRIVILEGED_MODE="true"
-        SOURCE_VERSION="pdf2html-subtree"
+        SOURCE_VERSION="David-Xavier"
         BUILDSPEC_FILE="buildspec-unified.yml"
     fi
 
@@ -861,8 +861,8 @@ print_success "✅ AWS credentials verified. Account: $ACCOUNT_ID, Region: $REGI
 echo ""
 
 # GitHub repository URL (hardcoded)
-GITHUB_URL="https://github.com/ASUCICREPO/PDF_Accessibility.git"
-print_success "   Repository: $GITHUB_URL ✅"
+GITHUB_URL="https://github.com/Center429/IT429-TeamProject-CenterGroup.git"
+print_success "    Repository: $GITHUB_URL ✅"
 echo ""
 
 # CodeBuild project name (hardcoded with timestamp)
