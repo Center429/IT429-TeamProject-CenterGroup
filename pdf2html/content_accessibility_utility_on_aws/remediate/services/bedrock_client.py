@@ -41,6 +41,7 @@ class BedrockClient:
         self,
         model_id: str = "us.amazon.nova-lite-v1:0",
         profile: Optional[str] = None,
+        region: str = 'us-east-1'
     ):
         """
         Initialize the Bedrock client.
