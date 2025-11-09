@@ -77,24 +77,27 @@ class PDFAccessibility(Stack):
         ecs_task_role = iam.Role(self, "EcsTaskExecutionRole",
             assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
             managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonECSTaskExecutionRolePolicy"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("SecretsManagerReadWrite")  # Add this line
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonECSTaskExecutionRolePolicy"),  # Add this line
             ]
         )
         ecs_task_role.add_to_policy(iam.PolicyStatement(
-            actions=["bedrock:*"],  # Adjust based on the specific Bedrock actions required
-            resources=["*"],
+            actions=["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],  # Adjust based on the specific Bedrock actions required
+            resources=[model_arn_image, model_arn_link],
         ))
         ecs_task_role.add_to_policy(iam.PolicyStatement(
-            actions=["s3:*"],  # This gives access to all S3 actions
-            resources=["*"],   # This applies the actions to all resources
+            actions=["s3:ListBucket"],  # This gives access to all S3 actions
+            resources=[bucket.bucket_arn],   # This applies the actions to all resources
         ))
-        ecs_task_role.add_to_policy(iam.PolicyStatement(actions=
-                                                        ["secretsmanager:GetSecretValue"], 
-                                                         resources=[f"arn:aws:secretsmanager:{region}:{account_id}:secret:/myapp/db_credentials"] )
-                                                         )
+        ecs_task_role.add_to_policy(iam.PolicyStatement(
+            actions=["s3:GetObject", "s3:PutObject"],
+            resources=[f"{bucket.bucket_arn}/*"],
+        ))
+        ecs_task_role.add_to_policy(iam.PolicyStatement
+            (actions= ["secretsmanager:GetSecretValue"], 
+            resources=[f"arn:aws:secretsmanager:{region}:{account_id}:secret:/myapp/db_credentials"] 
+        ))
         # Grant S3 read/write access to ECS Task Role
-        bucket.grant_read_write(ecs_task_execution_role)
+        bucket.grant_read_write(ecs_task_role)
         # Create ECS Task Log Groups explicitly
         python_container_log_group = logs.LogGroup(self, "PythonContainerLogGroup",
                                                 log_group_name="/ecs/MyFirstTaskDef/PythonContainerLogGroup",
