@@ -30,6 +30,10 @@ from content_accessibility_utility_on_aws.batch.common import (
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOG_LEVEL", "INFO"))
 
+def create_temp_filename(sanitized_filename, file_ext, temp_folder, prefix = ''):
+    fd, local_in = tempfile.mkstemp(suffix=file_ext, prefix=prefix, dir=temp_folder)
+    os.close(fd)
+    return local_in
 
 def process_pdf_document(
     job_id: str,
@@ -148,11 +152,11 @@ def upload_conversion_results(
     base_name = os.path.splitext(os.path.basename(source_key))[0]
 
     # Generate prefix for the HTML files
-    prefix = f"html/{base_name}/"
+    prefix = create_temp_filename(base_name, '', 'html')
 
     # Upload main HTML file
     html_path = result.get("html_path")
-    html_key = f"{prefix}{os.path.basename(html_path)}"
+    html_key = create_temp_filename(os.path.basename(html_path), '.html', prefix)
 
     upload_to_s3(
         local_path=html_path,
@@ -164,7 +168,7 @@ def upload_conversion_results(
     # Upload additional HTML files
     html_files = []
     for file_path in result.get("html_files", []):
-        file_key = f"{prefix}{os.path.basename(file_path)}"
+        file_key = create_temp_filename(os.path.basename(file_path), '.html', prefix)
         upload_to_s3(
             local_path=file_path,
             bucket=destination_bucket,
@@ -176,7 +180,7 @@ def upload_conversion_results(
     # Upload image files
     image_files = []
     for file_path in result.get("image_files", []):
-        file_key = f"{prefix}images/{os.path.basename(file_path)}"
+        file_key = create_temp_filename(os.path.basename(file_path), '.png', prefix, 'images')
 
         # Determine content type based on file extension
         content_type = "image/png"  # Default
@@ -196,7 +200,7 @@ def upload_conversion_results(
     # Upload CSS files if present
     css_files = []
     for file_path in result.get("css_files", []):
-        file_key = f"{prefix}css/{os.path.basename(file_path)}"
+        file_key = create_temp_filename(os.path.basename(file_path), '.css', prefix, 'css')
         upload_to_s3(
             local_path=file_path,
             bucket=destination_bucket,

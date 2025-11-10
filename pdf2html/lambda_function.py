@@ -8,7 +8,13 @@ import shutil
 import urllib.parse
 from content_accessibility_utility_on_aws.api import process_pdf_accessibility
 
+
 s3 = boto3.client("s3")
+
+def create_temp_filename(sanitized_filename, file_ext, temp_folder, prefix = ''):
+    fd, local_in = tempfile.mkstemp(suffix=file_ext, prefix=prefix, dir=temp_folder)
+    os.close(fd)
+    return local_in
 
 def sanitize_filename(filename):
     """
@@ -99,6 +105,7 @@ def lambda_handler(event, context):
         
         # Sanitize the filename by replacing spaces with underscores
         sanitized_filename = sanitize_filename(original_filename)
+        file_ext = os.path.splitext(sanitized_filename)[1] or '.pdf'
         print(f"[INFO] Original filename: {original_filename}, Sanitized filename: {sanitized_filename}")
         
         # Use sanitized filename for all processing
@@ -134,7 +141,9 @@ def lambda_handler(event, context):
             }
 
         # 2) Download PDF to /tmp with sanitized filename for processing
-        local_in = f"/tmp/{sanitized_filename}"
+        fd, local_in = tempfile.mkstemp(suffix=file_ext, prefix=filename_base, dir='/tmp')
+        os.close(fd) 
+
         try:
             s3.download_file(bucket, key, local_in)
             print(f"[INFO] Downloaded s3://{bucket}/{key} to {local_in}")
@@ -183,7 +192,7 @@ def lambda_handler(event, context):
                         break
             
             if os.path.exists(index_html_path):
-                index_s3_key = f"output/{filename_base}.html"
+                index_s3_key = create_temp_filename(filename_base, '.html', 'output')
                 s3.upload_file(index_html_path, bucket, index_s3_key)
                 print(f"[INFO] Uploaded index.html to s3://{bucket}/{index_s3_key}")
             else:
@@ -197,7 +206,7 @@ def lambda_handler(event, context):
                 try:
                     # Get the BDA output prefix from environment variable
                     bda_output_prefix = os.environ.get("BDA_OUTPUT_PREFIX", "bda-processing")
-                    bda_processing_prefix = f"{bda_output_prefix}/{filename_base}/"
+                    bda_processing_prefix = create_temp_filename(filename_base, '', bda_output_prefix)
                     print(f"[INFO] Cleaning up Bedrock intermediate files at s3://{bucket}/{bda_processing_prefix}")
                     
                     # List all objects in the prefix
@@ -220,7 +229,7 @@ def lambda_handler(event, context):
                         print(f"[INFO] No files found to delete in {bda_processing_prefix}")
                     
                     # Clean up the BDA input file
-                    bda_input_key = f"bda-inputs/{sanitized_filename}"
+                    bda_input_key = create_temp_filename(sanitized_filename, file_ext, '', 'bda-inputs')
                     try:
                         s3.delete_object(Bucket=bucket, Key=bda_input_key)
                         print(f"[INFO] Deleted BDA input file: s3://{bucket}/{bda_input_key}")
@@ -228,7 +237,7 @@ def lambda_handler(event, context):
                         print(f"[WARNING] Failed to delete BDA input file: {e}")
                         
                     # Also check for any old output folders that might exist
-                    old_output_prefix = f"output/{filename_base}/"
+                    old_output_prefix = create_temp_filename(filename_base, '', 'output')
                     if old_output_prefix != f"output/":  # Safety check to avoid deleting the entire output folder
                         print(f"[INFO] Checking for old output files at s3://{bucket}/{old_output_prefix}")
                         
@@ -259,7 +268,7 @@ def lambda_handler(event, context):
             
             # Create the zip file at the end after all processing is complete
             # This ensures all files are included in the zip
-            zip_path = f"/tmp/{filename_base}.zip"
+            zip_path = create_temp_filename(filename_base, '.zip', '/tmp')
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 # Walk through the output directory and add files to zip
@@ -273,12 +282,12 @@ def lambda_handler(event, context):
             
             # Upload zip to the output folder so head_object can detect it
             # This MUST match the path we check in the idempotency check above
-            output_s3_key = f"output/{filename_base}.zip"
+            output_s3_key = create_temp_filename(filename_base, '.zip', 'output')
             s3.upload_file(zip_path, bucket, output_s3_key)
             print(f"[INFO] Uploaded complete zip file to s3://{bucket}/{output_s3_key}")
             
             # Create a separate "final" zip for the remediated folder with only specific files
-            final_zip_path = f"/tmp/final_{filename_base}.zip"
+            final_zip_path = create_temp_filename(filename_base, '.zip', '/tmp', 'final_')
             
             # List of files/folders to include in the final zip
             include_patterns = [
@@ -307,7 +316,7 @@ def lambda_handler(event, context):
                             print(f"[INFO] Added to final zip: {rel_path}")
             
             # Upload the final zip to the remediated folder
-            remediated_s3_key = f"remediated/final_{filename_base}.zip"
+            remediated_s3_key = create_temp_filename(filename_base, '.zip', 'remediated', 'final_')
             s3.upload_file(final_zip_path, bucket, remediated_s3_key)
             print(f"[INFO] Uploaded final zip file to s3://{bucket}/{remediated_s3_key}")
                 
