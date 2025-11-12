@@ -73,6 +73,11 @@ class PDFAccessibility(Stack):
         # Allow ECS Task Role to access Bedrock services
         account_id = Stack.of(self).account
         region = Stack.of(self).region
+
+        model_id_image = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
+        model_id_link = 'us.anthropic.claude-3-haiku-20240307-v1:0'
+        model_arn_image = f'arn:aws:bedrock:{region}:{account_id}:inference-profile/{model_id_image}'
+        model_arn_link = f'arn:aws:bedrock:{region}:{account_id}:inference-profile/{model_id_link}'
         
         ecs_task_role = iam.Role(self, "EcsTaskExecutionRole",
             assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
@@ -94,7 +99,7 @@ class PDFAccessibility(Stack):
         ))
         ecs_task_role.add_to_policy(iam.PolicyStatement
             (actions= ["secretsmanager:GetSecretValue"], 
-            resources=[f"arn:aws:secretsmanager:{region}:{account_id}:secret:/myapp/db_credentials"] 
+            resources=[f"arn:aws:secretsmanager:{region}:{account_id}:secret:/myapp/db_credentials-*"] 
         ))
         # Grant S3 read/write access to ECS Task Role
         bucket.grant_read_write(ecs_task_role)
@@ -134,10 +139,6 @@ class PDFAccessibility(Stack):
         stream_prefix="JavaScriptContainerLogs",
         log_group=javascript_container_log_group
     ))
-        model_id_image = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
-        model_id_link = 'us.anthropic.claude-3-haiku-20240307-v1:0'
-        model_arn_image = f'arn:aws:bedrock:{region}:{account_id}:inference-profile/{model_id_image}'
-        model_arn_link = f'arn:aws:bedrock:{region}:{account_id}:inference-profile/{model_id_link}'
         # ECS Tasks in Step Functions
         ecs_task_1 = tasks.EcsRunTask(self, "ECS RunTask",
                                       integration_pattern=sfn.IntegrationPattern.RUN_JOB,
