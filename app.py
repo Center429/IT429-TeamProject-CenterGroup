@@ -97,8 +97,8 @@ class PDFAccessibility(Stack):
             actions=["s3:GetObject", "s3:PutObject"],
             resources=[f"{bucket.bucket_arn}/*"],
         ))
-        ecs_task_role.add_to_policy(iam.PolicyStatement
-            (actions= ["secretsmanager:GetSecretValue"], 
+        ecs_task_role.add_to_policy(iam.PolicyStatement(
+            actions= ["secretsmanager:GetSecretValue"], 
             resources=[f"arn:aws:secretsmanager:{region}:{account_id}:secret:/myapp/db_credentials-*"] 
         ))
         # Grant S3 read/write access to ECS Task Role
@@ -221,8 +221,7 @@ class PDFAccessibility(Stack):
         cloudwatch_logs_policy = iam.PolicyStatement(
                     actions=["cloudwatch:PutMetricData"],  # Allow PutMetricData action
                     resources=["*"],
-                    conditions={"StringEquals": {"cloudwatch:namespace": "PDF_Processing"}# All CloudWatch resources # All CloudWatch Logs resources
-            },
+                    conditions={"StringEquals": {"cloudwatch:namespace": "PDF_Processing"}} # All CloudWatch resources # All CloudWatch Logs resources
         )
         java_lambda = lambda_.Function(
             self, 'JavaLambda',
