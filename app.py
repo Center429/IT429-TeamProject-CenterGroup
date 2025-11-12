@@ -220,7 +220,9 @@ class PDFAccessibility(Stack):
 
         cloudwatch_logs_policy = iam.PolicyStatement(
                     actions=["cloudwatch:PutMetricData"],  # Allow PutMetricData action
-                    resources=["*"],  # All CloudWatch resources # All CloudWatch Logs resources
+                    resources=["*"],
+                    conditions={"StringEquals": {"cloudwatch:namespace": "PDF_Processing"}# All CloudWatch resources # All CloudWatch Logs resources
+            },
         )
         java_lambda = lambda_.Function(
             self, 'JavaLambda',
@@ -277,8 +279,8 @@ class PDFAccessibility(Stack):
         # Add the necessary policy to the Lambda function's role
         add_title_lambda.add_to_role_policy(cloudwatch_logs_policy)
         add_title_lambda.add_to_role_policy(iam.PolicyStatement(
-            actions=["bedrock:*"],  # Adjust based on the specific Bedrock actions required
-            resources=["*"],
+            actions=["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],  # Adjust based on the specific Bedrock actions required
+            resources=[model_arn_image, model_arn_link],
         ))
 
         # Chain the tasks in the state machine
