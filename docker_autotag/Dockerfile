@@ -20,5 +20,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Verify that the application files are present
 RUN ls -la /app
 
+# Create non-root user and switch to it
+RUN useradd -m -u 1001 appuser && \
+    chown -R appuser:appuser /app /output
+USER appuser
+
+
 # Set the command to run the Python script when the container launches
 CMD ["python", "./autotag.py"]
