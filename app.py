@@ -42,9 +42,9 @@ class PDFAccessibility(Stack):
             "pdfaccessibilitybucket1",
             encryption=s3.BucketEncryption.S3_MANAGED,
             enforce_ssl=True,
-            versioned=True,  # CKV_AWS_21 - versioning
-            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,  # CKV_AWS_53/54/55/56
-            server_access_logs_bucket=logs_bucket,               # CKV_AWS_18 - access logging
+            versioned=True,  
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,  
+            server_access_logs_bucket=logs_bucket,                
             server_access_logs_prefix="access-logs/",
             cors=[
                 s3.CorsRule(
