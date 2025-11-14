@@ -24,17 +24,43 @@ class PDFAccessibility(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         
-        # S3 Bucket
-        bucket = s3.Bucket(self, "pdfaccessibilitybucket1", 
-                          encryption=s3.BucketEncryption.S3_MANAGED, 
-                          enforce_ssl=True,
-                          cors=[s3.CorsRule(
-                              allowed_headers=["*"],
-                              allowed_methods=[s3.HttpMethods.GET, s3.HttpMethods.HEAD, s3.HttpMethods.PUT, s3.HttpMethods.POST, s3.HttpMethods.DELETE],
-                              allowed_origins=["*"],
-                              exposed_headers=[]
-                          )])
-    
+        # S3 Logs Bucket (for access logging)
+        logs_bucket = s3.Bucket(
+            self,
+            "pdfaccessibilitybucketlogs",
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            enforce_ssl=True,
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            versioned=True,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+            auto_delete_objects=True,
+        )
+
+        # Main S3 Bucket
+        bucket = s3.Bucket(
+            self,
+            "pdfaccessibilitybucket1",
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            enforce_ssl=True,
+            versioned=True,  # CKV_AWS_21 - versioning
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,  # CKV_AWS_53/54/55/56
+            server_access_logs_bucket=logs_bucket,               # CKV_AWS_18 - access logging
+            server_access_logs_prefix="access-logs/",
+            cors=[
+                s3.CorsRule(
+                    allowed_headers=["*"],
+                    allowed_methods=[
+                        s3.HttpMethods.GET,
+                        s3.HttpMethods.HEAD,
+                        s3.HttpMethods.PUT,
+                        s3.HttpMethods.POST,
+                        s3.HttpMethods.DELETE,
+                    ],
+                    allowed_origins=["*"],
+                    exposed_headers=[],
+                )
+            ],
+        )
 
         python_image_asset = ecr_assets.DockerImageAsset(self, "PythonImage",
                                                          directory="docker_autotag",
