@@ -42,9 +42,9 @@ class PDFAccessibility(Stack):
             "pdfaccessibilitybucket1",
             encryption=s3.BucketEncryption.S3_MANAGED,
             enforce_ssl=True,
-            versioned=True,  # CKV_AWS_21
-            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,  # CKV_AWS_53/54/55/56
-            server_access_logs_bucket=logs_bucket,               # CKV_AWS_18
+            versioned=True,  
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,  
+            server_access_logs_bucket=logs_bucket,              
             server_access_logs_prefix="access-logs/",
             cors=[
                 s3.CorsRule(
@@ -62,7 +62,6 @@ class PDFAccessibility(Stack):
             ],
         )
 
-        # Force extra properties so Checkov sees them on the main bucket
         bucket_cfn = bucket.node.default_child
         bucket_cfn.add_property_override(
             "PublicAccessBlockConfiguration",
@@ -94,7 +93,6 @@ class PDFAccessibility(Stack):
         javascript_image_asset = ecr_assets.DockerImageAsset(self, "JavaScriptImage",
                                                              directory="javascript_docker",
                                                              platform=ecr_assets.Platform.LINUX_AMD64)
-        # VPC with Public and Private Subnets
         vpc = ec2.Vpc(self, "MyVpc",
             max_azs=2,
             nat_gateways=1,
