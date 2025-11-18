@@ -117,7 +117,9 @@ class PDFAccessibility(Stack):
                                                                   logging=ecs.LogDrivers.aws_logs(
         stream_prefix="PythonContainerLogs",
         log_group=python_container_log_group,
-    ))
+    ),
+        readonly_root_filesystem=True,
+    )
 
         task_definition_2 = ecs.FargateTaskDefinition(self, "MySecondTaskDef",
                                                       memory_limit_mib=1024,
@@ -130,7 +132,9 @@ class PDFAccessibility(Stack):
                                                                    logging=ecs.LogDrivers.aws_logs(
         stream_prefix="JavaScriptContainerLogs",
         log_group=javascript_container_log_group
-    ))
+    ),
+    readonly_root_filesystem=True,
+    )
         model_id_image = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
         model_id_link = 'us.anthropic.claude-3-haiku-20240307-v1:0'
         model_arn_image = f'arn:aws:bedrock:{region}:{account_id}:inference-profile/{model_id_image}'
