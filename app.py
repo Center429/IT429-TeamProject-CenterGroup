@@ -123,9 +123,7 @@ class PDFAccessibility(Stack):
         cluster = ecs.Cluster(self, "FargateCluster", vpc=vpc)
 
         # Execution role for pulling images, writing logs, etc.
-        ecs_task_execution_role = iam.Role(
-            self,
-            "EcsTaskRole",
+        ecs_task_execution_role = iam.Role(self, "EcsTaskRole",
             assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name(
@@ -148,47 +146,32 @@ class PDFAccessibility(Stack):
         )
 
         # Task role for the application containers (least-privilege)
-        ecs_task_role = iam.Role(
-            self,
-            "EcsTaskExecutionRole",
+        ecs_task_role = iam.Role(self,"EcsTaskExecutionRole",
             assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
             managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "service-role/AmazonECSTaskExecutionRolePolicy"
-                ),
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonECSTaskExecutionRolePolicy"),
             ],
         )
-
         # Bedrock: only allow invoking the specific models used by the app
-        ecs_task_role.add_to_policy(
-            iam.PolicyStatement(
-                actions=[
-                    "bedrock:InvokeModel",
-                    "bedrock:InvokeModelWithResponseStream",
-                ],
+        ecs_task_role.add_to_policy(iam.PolicyStatement(
+                actions=["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
                 resources=[model_arn_image, model_arn_link],
             )
         )
-
         # S3: list only this bucket
-        ecs_task_role.add_to_policy(
-            iam.PolicyStatement(
+        ecs_task_role.add_to_policy(iam.PolicyStatement(
                 actions=["s3:ListBucket"],
                 resources=[bucket.bucket_arn],
             )
         )
-
         # S3: read/write only objects inside this bucket
-        ecs_task_role.add_to_policy(
-            iam.PolicyStatement(
+        ecs_task_role.add_to_policy(iam.PolicyStatement(
                 actions=["s3:GetObject", "s3:PutObject"],
                 resources=[f"{bucket.bucket_arn}/*"],
             )
         )
-
         # Secrets Manager: read exactly one application secret (no wildcards)
-        ecs_task_role.add_to_policy(
-            iam.PolicyStatement(
+        ecs_task_role.add_to_policy(iam.PolicyStatement(
                 actions=["secretsmanager:GetSecretValue"],
                 resources=[
                     f"arn:aws:secretsmanager:{region}:{account_id}:secret:/myapp/db_credentials"
