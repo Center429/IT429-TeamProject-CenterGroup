@@ -14,10 +14,10 @@ import re
 import tempfile
 
 
-def create_json_output_file_path():
+def create_json_output_file_path(file_basename=None):
     fd, file_path = tempfile.mkstemp(
         suffix=".json",
-        prefix="result_after_remidiation_",
+        prefix=(if file_basename else "result_after_remidiation_"),
         dir="/tmp"
     )
     os.close(fd)
@@ -34,7 +34,7 @@ def download_file_from_s3(bucket_name,file_key, save_path, local_path):
 def save_to_s3(bucket_name, file_key):
     s3 = boto3.client('s3')
 
-    local_path = "/tmp/PDFAccessibilityChecker/result_after_remidiation.json"
+    local_path = create_json_output_file_path()
 
     file_key_without_extension = os.path.splitext(file_key)[0]
     file_key_without_compliant = file_key_without_extension.replace("COMPLIANT_", "", 1)
@@ -101,7 +101,7 @@ def lambda_handler(event, context):
     print("File basename:", file_basename)
 
 
-    local_path = f"/tmp/{file_basename}"
+    local_path = create_json_output_file_path(file_basename)
     download_file_from_s3(s3_bucket,file_basename ,save_path, local_path)
 
     try:
